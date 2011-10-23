@@ -26,7 +26,7 @@ class LAINK::Player
 		unless gametype_is_supported? gametype
 			raise "The server at #{server_ip} does not support the gametype #{gametype}" 
 		end
-		
+
 		# This will wait until all competitors have joined before returning
 		server_command('start_game', signature:gametype)
 
@@ -65,7 +65,6 @@ class LAINK::Player
 		p "Server response: #{response.inspect}" if $DEBUG
 		
 		if response.is_a?(Hash) && response[:error]
-			p "Error'd"
 			raise LAINK::Server.const_get(response[:error]).new( response[:details] )
 		end
 		response

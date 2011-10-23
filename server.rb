@@ -7,8 +7,8 @@ require 'json'
 require_relative 'laink'
 
 class LAINK::Server
-	module ThreadProperty
-		attr_accessor :server_thread
+	module SocketsHaveGames
+		attr_accessor :game
 	end
 
 	DEFAULT_PORT = 54147
@@ -19,7 +19,7 @@ class LAINK::Server
 		@waiting_game_by_type = {}
 		loop do
 			Thread.start(server.accept) do |client|
-				client.extend(ThreadProperty); client.server_thread = Thread.current
+				client.extend(SocketsHaveGames)
 				begin
 					client_address = "%s:%i" % client.remote_address.ip_unpack
 					puts "New connection from #{client_address}"
@@ -43,8 +43,7 @@ class LAINK::Server
 								respond_to client, LAINK::GameType.exists?( request[:args][:signature] )
 
 							when 'game_active?'
-								game = Thread.current[:game]
-								respond_to client, game && game.active?
+								respond_to client, client.game && client.game.active?
 
 							when 'start_game'
 								signature = request[:args][:signature]						
@@ -55,18 +54,19 @@ class LAINK::Server
 								end
 
 							when 'current_state'
-								respond_to client, Thread.current[:game].state
+								respond_to( client, error:"NoActiveGame" ) && next unless client.game
+								respond_to( client, error:"GameIsOver"   ) && next unless client.game.active?
+								respond_to( client, client.game.state    )
 
 							when 'move'
-								game = Thread.current[:game]
-								respond_to( client, error:"NoActiveGame" ) && next unless game
-								respond_to( client, error:"GameIsOver"   ) && next unless game.active?
-								respond_to( client, error:"InvalidMove"  ) && next unless game.valid_move?( request[:move] )
+								respond_to( client, error:"NoActiveGame" ) && next unless client.game
+								respond_to( client, error:"GameIsOver"   ) && next unless client.game.active?
+								respond_to( client, error:"InvalidMove"  ) && next unless client.game.valid_move?( request[:move] )
 								# TODO: ask the game to tell me when it's my turn...or something
-								respond_to client, { state:game.state }
+								respond_to( client, { state:game.state } )
 
 							when 'goodbye'
-								Thread.current[:game] = nil
+								client.game = nil
 								respond_to client, { message:"Goodbye, friend!" }
 								break
 						end
@@ -86,7 +86,7 @@ class LAINK::Server
 			if game.enough_players?
 				game.players.each do |player|
 					respond_to player, { message:"Let's play some #{gametype.name}!" }
-					player.server_thread[:game] = game
+					player.game = game
 				end
 				@waiting_game_by_type[gametype] = nil
 			end

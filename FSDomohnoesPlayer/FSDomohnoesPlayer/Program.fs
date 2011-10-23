@@ -1,16 +1,33 @@
 ﻿//TODO: Factor the general Player-ness out of this into a resuable thing.
 
+open Newtonsoft.Json
 open System.Net.Sockets
 open System.Text
+open System.IO
 
 let utf8 = Encoding.UTF8
 
-let command c (a:string[]) =
+let command (c:string) (a:string[]) =
   let sb = StringBuilder()
-  sb.Append "[" |> ignore
-  Array.iter (fun s -> sb.Append (sprintf "\"%s\"" s) |> ignore ) a
-  sb.Append "]" |> ignore
-  sprintf "{\"command\":\"%s\", \"args\":%s}" c (sb.ToString())
+  use sw = new StringWriter(sb)
+  use j = new JsonTextWriter(sw)
+  j.WriteStartObject()
+  j.WritePropertyName("command")
+  j.WriteValue(c)
+  j.WritePropertyName("args")
+  j.WriteStartArray()
+  Array.iter (fun (s:string) -> j.WriteValue(s)) a
+  j.WriteEnd()
+  j.WriteEndObject()
+  sb.ToString()
+
+let pukeJSON (s:string) =
+  printfn "%O" s
+  let j = new JsonTextReader( new StringReader(s) )
+  let mutable weDone = false
+  while j.Read() do
+    printfn "  %O" j.TokenType
+    printfn "    %O: %O" j.ValueType j.Value
 
 let gameType = "com.danceliquid.domohnoes"
 
@@ -19,21 +36,18 @@ let streamWrite (stream:NetworkStream) (s:string) =
   let l = b.Length
   stream.Write(b, 0, l)
 
-let s = new System.Net.Sockets.TcpClient("localhost", 54147)
-let stream = s.GetStream()
+let streamRead (stream:NetworkStream) =
+  let size = 2<<<16-1
+  let response = Array.create size ((byte)0)
+  let l = stream.Read( response, 0, size )
+  System.String(utf8.GetChars( response, 0, l ))
 
-let size = 2<<<16-1
-let response = Array.create size ((byte)0)
-let mutable l = 0
+let stream = (new TcpClient("localhost", 54147)).GetStream()
 
-streamWrite stream (command "gametype_supported" [| gameType |])
-l <- stream.Read( response, 0, size )
-printfn "%O" (System.String(utf8.GetChars( response, 0, l )))
+let interact cmd =
+  streamWrite stream cmd
+  pukeJSON (streamRead stream)
 
-streamWrite stream (command "start_game" [| gameType |])
-l <- stream.Read( response, 0, size )
-printfn "%O" (System.String(utf8.GetChars( response, 0, l )))
-
-streamWrite stream (command "goodbye" [| |])
-l <- stream.Read( response, 0, size )
-printfn "%O" (System.String(utf8.GetChars( response, 0, l )))
+interact (command "gametype_supported" [| gameType |])
+interact (command "start_game" [| gameType |])
+interact (command "goodbye" [| |])

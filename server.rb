@@ -7,8 +7,8 @@ require 'json'
 require_relative 'laink'
 
 class LAINK::Server
-	module SocketsHaveGames
-		attr_accessor :game
+	module SocketsArePlayers
+		attr_accessor :game, :name
 	end
 
 	DEFAULT_PORT = 54147
@@ -19,7 +19,7 @@ class LAINK::Server
 		@waiting_game_by_type = {}
 		loop do
 			Thread.start(server.accept) do |client|
-				client.extend(SocketsHaveGames)
+				client.extend(SocketsArePlayers)
 				begin
 					client_address = "%s:%i" % client.remote_address.ip_unpack
 					puts "New connection from #{client_address}"
@@ -39,6 +39,10 @@ class LAINK::Server
 						end
 
 						case request[:command]
+							when 'identify'
+								client.name = request[:args][:name]
+								respond_to client, "Hello, #{client.name}"
+
 							when 'gametype_supported?'								
 								respond_to client, LAINK::GameType.exists?( request[:args][:signature] )
 

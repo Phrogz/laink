@@ -40,10 +40,7 @@ class Domohnoes < LAINK::GameType
 	end
 
 	def state( player )
-		{
-			hand:hand(player),
-			board:@board
-		}
+		{ hand:hand(player), board:@board }
 	end
 
 	def scores
@@ -58,13 +55,9 @@ class Domohnoes < LAINK::GameType
 			when 'play'
 				domino = move[:domino].sort
 				return false unless domino.length==2
-				return false unless has_domino?( player, domino )
+				return false unless hand( player ).include?( domino )
 				@board.empty? || domino_goes_on_board?( domino, move[:edge] )
 		end
-	end
-
-	def has_domino?( player, domino )
-		hand( player ).include?( domino.sort )
 	end
 
 	def domino_goes_on_board?( domino, board_side )
@@ -89,23 +82,14 @@ class Domohnoes < LAINK::GameType
 				hand( player ).delete( domino )
 				case move[:edge]
 					when LEFT_EDGE
-						unless flat.first==domino.last
-							@board.unshift(domino.reverse)
-						else
-							@board.unshift(domino)
-						end
+						@board.unshift( flat.first!=domino.last ? domino.reverse : domino )
 					else # Handles no edge initial move as well as explicit right edge
-						unless flat.last==domino.first
-							@board.push(domino.reverse)
-						else
-							@board.push(domino)
-						end
+						@board.push( flat.last!=domino.first ? domino.reverse : domino )
 				end
 				finish_game if hand( player ).empty?
 
 		end
-		@player_index += 1
-		@player_index %= players.length
+		@player_index = ( @player_index + 1 ) % players.length
 	end
 
 	private

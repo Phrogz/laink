@@ -7,8 +7,61 @@ require 'json'
 require_relative 'laink'
 
 class LAINK::Server
-	module SocketsArePlayers
-		attr_accessor :game, :name
+	module PlayerLikeThing
+		attr_accessor :game, :name, :thread
+		def addy
+			"'#{name}' (%s:%i)" % remote_address.ip_unpack
+		end
+
+		# Send a command to a client; wait for, get and decode the response
+		def command( command, args={} )
+			send_data command:command, args:args
+			get_response
+		end
+
+		def send_data( data )
+			message = data.to_json
+			$stdout.puts "[#{Time.hms}] sending to #{addy}: '#{message}'" if $DEBUG
+			send message, 0 #TODO: What flags?
+		end
+
+		def get_response
+			begin
+				response = recvfrom( LAINK::MAX_BYTES ).first   # FIXME: timeout
+				begin
+					response = JSON.parse_any(response,symbolize_names:true)
+				rescue JSON::ParserError => e
+					send_data error:"CommandParseError", details:{ text:request, error:e }
+					warn "Failed to parse client response: #{response.inspect}; #{e}"
+				end
+				$stdout.puts "[#{Time.hms}] #{addy} sends #{response.inspect}" if $DEBUG
+				response
+			rescue Errno::ECONNRESET => e
+				warn "Connection closed waiting for response"
+			end
+		end
+
+		def your_turn
+			state = game.state(self)
+			begin
+				move  = command( 'move', state:state )
+				game.move_from( self, move )
+			rescue Errno::ECONNRESET => e
+				game.remove_player( self )
+			end
+		end
+
+		def game_over
+			send_data command:'gameover', winner:game.winner.name
+		end
+
+		def sleep
+			Thread.stop
+		end
+
+		def awake
+			thread.run
+		end
 	end
 
 	DEFAULT_PORT = 54147
@@ -19,88 +72,62 @@ class LAINK::Server
 		@waiting_game_by_type = {}
 		loop do
 			Thread.start(server.accept) do |client|
-				client.extend(SocketsArePlayers)
+				client.extend(PlayerLikeThing)
+				client.thread = Thread.current
 				begin
-					client_address = "%s:%i" % client.remote_address.ip_unpack
-					puts "New connection from #{client_address}"
+					puts "[#{Time.hms}] New connection from #{client.addy}"
 					loop do
-						request_json = client.recvfrom(LAINK::MAX_BYTES).first # FIXME: timeout
-						begin
-							request = JSON.parse_any(request_json,symbolize_names:true) 
-						rescue JSON::ParserError => e
-							respond_to client, { error:"CommandParseError", details:{ text:request, error:e } }
-							next
-						end
-						puts "Received: #{request.inspect}" if $DEBUG
-
+						request = client.get_response
 						unless request && request[:command]
-							warn "Disconnecting #{client_address} due to malformed command #{request_json.inspect}"
+							warn "Disconnecting #{client.addy} due to malformed command #{request.inspect}"
 							break
 						end
 
 						case request[:command]
-							when 'identify'
-								client.name = request[:args][:name]
-								respond_to client, "Hello, #{client.name}"
-
 							when 'gametype_supported?'								
-								respond_to client, LAINK::GameType.exists?( request[:args][:signature] )
+								client.send_data LAINK::GameType.exists?( request[:args][:signature] )
 
 							when 'game_active?'
-								respond_to client, client.game && client.game.active?
+								client.send_data client.game && client.game.active?
 
 							when 'start_game'
 								signature = request[:args][:signature]						
 								unless gametype = LAINK::GameType[signature]
-									respond_to client, { error:"UnsupportedGameType", details:{ gametype:signature } }
+									client.send_data error:"UnsupportedGameType", details:{ gametype:signature }
 								else
-									create_game( gametype, client )
+									client.name = request[:args][:name]
+									waiting = create_or_join( gametype, client )
+									client.sleep if waiting 
+									break
 								end
-
-							when 'current_state'
-								respond_to( client, error:"NoActiveGame" ) && next unless client.game
-								respond_to( client, error:"GameIsOver"   ) && next unless client.game.active?
-								respond_to( client, client.game.state    )
-
-							when 'move'
-								respond_to( client, error:"NoActiveGame" ) && next unless client.game
-								respond_to( client, error:"GameIsOver"   ) && next unless client.game.active?
-								respond_to( client, error:"InvalidMove"  ) && next unless client.game.valid_move?( request[:move] )
-								# TODO: ask the game to tell me when it's my turn...or something
-								respond_to( client, { state:game.state } )
-
-							when 'goodbye'
-								client.game = nil
-								respond_to client, { message:"Goodbye, friend!" }
-								break
 						end
 					end
 				ensure
-					puts "Disconnecting client from #{client_address}"
+					puts "Disconnecting client #{client.addy}"
 					client.close
 				end
 			end
 		end
 	end
 
-	def create_game( gametype, client )
+	def create_or_join( gametype, client )
 		@game_protector.synchronize do
 			game = (@waiting_game_by_type[gametype] ||= gametype.new)
 			game << client
 			if game.enough_players?
+				@waiting_game_by_type[gametype] = nil
+				game.start
 				game.players.each do |player|
-					respond_to player, { message:"Let's play some #{gametype.name}!" }
+					player.send_data message:"Let's play some #{gametype.name}!"
 					player.game = game
 				end
-				@waiting_game_by_type[gametype] = nil
+				game.current_player.your_turn
+				game.players.each(&:awake)
+				false
+			else
+				true
 			end
 		end
-	end
-
-	def respond_to( client, data )
-		response = data.to_json
-		puts "Sending: '#{response}'" if $DEBUG
-		client.send response, 0 #TODO: What flags?
 	end
 
 end

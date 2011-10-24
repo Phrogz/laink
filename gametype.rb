@@ -32,20 +32,29 @@ class LAINK::GameType
 
 	attr_reader :players, :winner
 	def initialize
-		@active  = false
+		@started  = false
+		@finished = false
 		@players = []
 	end
 
 	def start
-		@active = true
+		@started = true
+	end
+
+	def started?
+		@started
 	end
 
 	def active?
-		@active
+		started? && !finished?
+	end
+
+	def finished?
+		@finished
 	end
 
 	def finish_game( winner=nil )
-		@active = false
+		@finished = true
 		@winner = winner
 	end
 
@@ -54,6 +63,14 @@ class LAINK::GameType
 		raise "Too many players" if too_many_players?
 	end
 	alias_method :<<, :add_player
+
+	def remove_player( player )
+		@players.delete( player )
+		player.thread.run
+		unless enough_players?
+			raise "Game cannot continue; not enough players"
+		end
+	end
 
 	def enough_players?( player_count=@players.length )
 		self.class.players.include?( player_count )
@@ -65,5 +82,13 @@ class LAINK::GameType
 
 	def too_many_players?( player_count=@players.length )
 		player_count > self.class.players.first
+	end
+
+	def move_from
+		if active?
+			current_player.your_turn
+		else
+			players.each(&:game_over)
+		end
 	end
 end

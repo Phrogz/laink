@@ -13,3 +13,9 @@ module JSON
 		parse("[#{str}]",opts).first
 	end
 end
+
+class Time
+	def self.hms
+		now.strftime '%k:%M:%S'
+	end
+end

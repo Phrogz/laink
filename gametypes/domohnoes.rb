@@ -67,9 +67,9 @@ class Domohnoes < LAINK::GameType
 		end
 	end
 
-	def move( player, move )
+	def move_from( player, move )
 		raise "not your move" unless player == current_player
-		raise "invalid move" unless valid_move?( player, move )
+		raise "invalid move"  unless valid_move?( player, move )
 		case move[:action]
 			when 'chapped'
 				finish_game if (@sequential_chaps += 1) == players.length
@@ -89,6 +89,7 @@ class Domohnoes < LAINK::GameType
 
 		end
 		@player_index = ( @player_index + 1 ) % players.length
+		super()
 	end
 
 	private

@@ -3,8 +3,16 @@ require_relative 'laink'
 require_relative 'server'
 
 class LAINK::Player
+	def initialize
+		@server = nil
+	end
+
 	def self.gametype( signature=nil )
 		signature ? @gametype = signature : @gametype
+	end
+
+	def name
+		self.class.name
 	end
 
 	def connect( ip="localhost", port=LAINK::Server::DEFAULT_PORT )
@@ -28,12 +36,20 @@ class LAINK::Player
 		end
 
 		# This will wait until all competitors have joined before returning
-		server_command('start_game', signature:gametype)
-
-		while server_command 'game_active?'
-			state   = server_command 'current_state'
-			my_move = move( state )
-			server_command 'move', {move:my_move} # TODO: authenticating...anything? Maybe sockets + threads ensures that I'm the only possible player sending this?
+		server_command('start_game', signature:gametype, name:name )
+		loop do
+			message = get_from_server
+			if message==nil
+				puts "Uh..."
+				next
+			end
+			case message[:command]
+				when 'move'
+					send_data(move(message[:args][:state]))
+				when 'gameover'
+					puts "Game was won by #{message[:winner]}"
+					break
+			end
 		end
 	end
 
@@ -54,19 +70,30 @@ class LAINK::Player
 
 	# Send a command to the server, get and decode the response
 	def server_command( command, args={} )
+		send_data command:command, args:args
+		response = get_from_server
+		if response.is_a?(Hash) && response[:error]
+			raise LAINK::Server.const_get(response[:error]).new( response[:details] )
+		end
+		response
+	end
+
+	def send_data( data )
 		connect unless connected?
-		@server.send( {command:command, args:args}.to_json, 0 ) # TODO: What flags are appropriate here?
+		message = data.to_json
+		puts "[#{Time.hms}] Sending to server @ #{server_ip}: '#{message}'" if $DEBUG
+		@server.send message, 0 #TODO: What flags?
+	end
+
+	def get_from_server
+		connect unless connected?
 		response = @server.recvfrom( LAINK::MAX_BYTES ).first   # FIXME: timeout
 		begin
 			response = JSON.parse_any(response,symbolize_names:true)
 		rescue JSON::ParserError => e
 			raise "Failed to parse server response: #{response.inspect}; #{e}"
 		end
-		p "Server response: #{response.inspect}" if $DEBUG
-		
-		if response.is_a?(Hash) && response[:error]
-			raise LAINK::Server.const_get(response[:error]).new( response[:details] )
-		end
+		puts "[#{Time.hms}] Server @ #{server_ip} sends #{response.inspect}" if $DEBUG
 		response
 	end
 

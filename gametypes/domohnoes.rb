@@ -61,10 +61,9 @@ class Domohnoes < LAINK::GameType
 	end
 
 	def domino_goes_on_board?( domino, board_side )
-		flat = @board.flatten
 		case board_side
-			when LEFT_EDGE  then domino.include?( flat.first )
-			when RIGHT_EDGE then domino.include?( flat.last  )
+			when LEFT_EDGE  then domino.include?( @board.first.first )
+			when RIGHT_EDGE then domino.include?( @board.last.last   )
 		end
 	end
 

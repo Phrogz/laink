@@ -13,9 +13,3 @@ module JSON
 		parse("[#{str}]",opts).first
 	end
 end
-
-class Range
-	def <=>(num)
-		num < first ? -1 : num > last ? 1 : 0
-	end
-end

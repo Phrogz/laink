@@ -30,30 +30,28 @@ class LAINK::GameType
 		end
 	end
 
-	attr_reader :players
+	attr_reader :players, :winner
 	def initialize
 		@active  = false
 		@players = []
+	end
+
+	def start
+		@active = true
 	end
 
 	def active?
 		@active
 	end
 
-	def finish_game
+	def finish_game( winner=nil )
 		@active = false
+		@winner = winner
 	end
 
 	def add_player( player )
-		allowed = self.class.players
 		@players << player
-		case allowed <=> @players.length
-			when -1 then @active = false
-			when  0 then @active = true
-			when  1 then
-				@active = false
-				raise "Too many players"
-		end
+		raise "Too many players" if too_many_players?
 	end
 	alias_method :<<, :add_player
 
@@ -61,5 +59,11 @@ class LAINK::GameType
 		self.class.players.include?( player_count )
 	end
 
+	def too_few_players?( player_count=@players.length )
+		player_count < self.class.players.first
+	end
 
+	def too_many_players?( player_count=@players.length )
+		player_count > self.class.players.first
+	end
 end

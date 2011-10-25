@@ -1,7 +1,9 @@
 #!/usr/bin/env ruby
 #encoding: UTF-8
-require_relative 'server2'
+require_relative 'json_socket'
+require_relative 'server2'     # For the default port
 
+module Laink; end
 class Laink::Client
 	attr_reader :name
   def initialize

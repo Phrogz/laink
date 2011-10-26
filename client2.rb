@@ -25,9 +25,7 @@ class Laink::Client
     disconnect if connected?
     begin
     	socket = TCPSocket.new( ip, port ) #FIXME: timeout
-      @server = Laink::JSONAsyncStatefulSocket.new( socket ) do |message|
-      	puts "I just heard message ##{@count+=1}: #{message.inspect}"
-      end
+      @server = Laink::JSONAsyncStatefulSocket.new( socket, &method(:handle_message) )
     rescue Errno::ECONNREFUSED => e
       warn "Could not connect to #{ip}:#{port}."
       raise
@@ -41,6 +39,11 @@ class Laink::Client
       sleep rand(3)
     }
     @server.send_data "Goodbye!"
+  end
+
+  def handle_message( message, jsocket )
+  	@count += 1
+  	puts "I just heard message ##{@count}: #{message.inspect}"
   end
 end
 

@@ -5,7 +5,7 @@ require_relative 'server2'     # For the default port
 
 module Laink; end
 class Laink::Client
-	attr_reader :name
+  attr_reader :name
   def initialize
     @server = nil
     @name   = "Client #{rand(10000).to_s(36)}"
@@ -24,7 +24,7 @@ class Laink::Client
   def connect( ip="localhost", port=Laink::Server::DEFAULT_PORT )
     disconnect if connected?
     begin
-    	socket = TCPSocket.new( ip, port ) #FIXME: timeout
+      socket = TCPSocket.new( ip, port ) #FIXME: timeout
       @server = Laink::JSONAsyncStatefulSocket.new( socket, &method(:handle_message) )
     rescue Errno::ECONNREFUSED => e
       warn "Could not connect to #{ip}:#{port}."
@@ -42,8 +42,8 @@ class Laink::Client
   end
 
   def handle_message( message, jsocket )
-  	@count += 1
-  	puts "I just heard message ##{@count}: #{message.inspect}"
+    @count += 1
+    puts "I just heard message ##{@count}: #{message.inspect}"
   end
 end
 

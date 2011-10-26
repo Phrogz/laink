@@ -7,28 +7,23 @@ class Laink::Server
   def initialize( port=DEFAULT_PORT )
     server = TCPServer.new(port)
     puts "Starting #{self.class} on %s:%i" % server.local_address.ip_unpack
+    @messages = 0
     loop do
       Thread.start(server.accept) do |socket|
-        client = Laink::JSONSocket.new(socket)
+        client = Laink::JSONAsyncStatefulSocket.new(socket) do |message, c|
+          puts "[#{@messages += 1}] I just heard #{message.inspect} from #{c.address}"
+        end
         begin
-          reader = Thread.new{ loop{
-            break if client.closed?
-            handle_message( client, client.read_data )
-          } }
           10.times{ |i|
-            break if client.closed?
-            client.send_data command:"G'day ##{i}", source:"Server"
             sleep rand(3)
+            break unless client.send_data command:"G'day ##{i}", source:"Server"
           }
         ensure
-          puts "Closing from #{client.address}"
-          socket.close
+          puts "Closing connection to #{client.address}"
+          socket.close unless socket.closed?
         end
       end
     end
-  end
-  def handle_message( client, message )
-    puts "I just heard #{message.inspect}" if message
   end
 end
 

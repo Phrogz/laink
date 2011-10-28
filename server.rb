@@ -9,7 +9,7 @@ class Laink::JSONSocket::Player < Laink::JSONSocket
 		command 'move', state:game.state(self)
 	end
 	def game_over
-		command 'gameover', winner:game.winner.nick, scores:Hash[ game.scores.map{|player,score| [player.nick,score] } ]
+		command 'gameover', winner:(game.winner && game.winner.nick)
 	end
 end
 

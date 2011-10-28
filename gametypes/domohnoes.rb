@@ -35,17 +35,12 @@ class Domohnoes < Laink::GameType
 		players[@player_index]
 	end
 
-	def next_player
-		players[(@player_index+1)%players.length]
-	end
-
 	def state( player )
 		{ hand:hand(player), board:@board }
 	end
 
 	def handle_message_from(player)
 		if message = next_message(player){ |m| m[:command]=='move' && player==current_player }
-			puts "Got #{message.inspect} from #{player.nick}" if $DEBUG
 			if valid_move?( player, message )
 				move_from( player, message )
 			else

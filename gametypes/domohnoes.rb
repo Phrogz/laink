@@ -1,7 +1,7 @@
 #encoding: UTF-8
 require_relative '../gametype'
 
-class Domohnoes < LAINK::GameType
+class Domohnoes < Laink::GameType
 	sig     "com.danceliquid.domohnoes"
 	name    "Domohnoes"
 	players 2..4
@@ -47,6 +47,19 @@ class Domohnoes < LAINK::GameType
 		@scores_by_player
 	end
 
+	def handle_message_from(player)
+		if message = next_message(player){ |m| m[:command]=='move' && player==current_player }
+			puts "Got #{message.inspect} from #{player.nick}" if $DEBUG
+			if valid_move?( player, message )
+				move_from( player, message )
+			else
+				player.error 'InvalidMove', move:message
+			end
+		else
+			super
+		end
+	end
+
 	def valid_move?( player, move )
 		case move[:action]
 			when 'chapped'
@@ -81,15 +94,14 @@ class Domohnoes < LAINK::GameType
 				hand( player ).delete( domino )
 				case move[:edge]
 					when LEFT_EDGE
-						@board.unshift( flat.first!=domino.last ? domino.reverse : domino )
+						@board.unshift( flat.first==domino.last ? domino : domino.reverse )
 					else # Handles no edge initial move as well as explicit right edge
-						@board.push( flat.last!=domino.first ? domino.reverse : domino )
+						@board.push(    flat.last==domino.first ? domino : domino.reverse )
 				end
 				finish_game if hand( player ).empty?
 
 		end
 		@player_index = ( @player_index + 1 ) % players.length
-		super()
 	end
 
 	private

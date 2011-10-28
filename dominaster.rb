@@ -1,11 +1,13 @@
 #!/usr/bin/env ruby
 #encoding: UTF-8
 
-require_relative 'player'
-class Dominaster < LAINK::Player
+require_relative 'client'
+class Dominaster < Laink::Client
 	gametype 'com.danceliquid.domohnoes'
-	def name
-		"#{self.class.name}_#{object_id.to_s(36)}"
+	attr_reader :name
+	def initialize
+		super
+		@name = "#{self.class.name}_#{rand(999999).to_s(36)}"
 	end
 	def move( state )
 		hand  = state[:hand].shuffle
@@ -24,7 +26,5 @@ class Dominaster < LAINK::Player
 end
 
 if __FILE__==$0
-	player = Dominaster.new
-	player.connect
-	player.new_game
+	30.times{ Dominaster.new.play_game }
 end

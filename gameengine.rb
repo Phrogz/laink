@@ -1,6 +1,6 @@
 #encoding: UTF-8
 require_relative 'laink'
-class Laink::GameType
+class Laink::GameEngine
 	##############################
 	### Tracking registered types
 	##############################
@@ -38,7 +38,7 @@ class Laink::GameType
 	end
 	def self.sig( sig=nil )			
 		@sig ||= sig if sig
-		Laink::GameType[@sig] = self
+		Laink::GameEngine[@sig] = self
 	end
 	def self.players( players=nil )
 		if players

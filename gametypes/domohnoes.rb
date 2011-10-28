@@ -1,7 +1,7 @@
 #encoding: UTF-8
-require_relative '../gametype'
+require_relative '../gameengine'
 
-class Domohnoes < Laink::GameType
+class Domohnoes < Laink::GameEngine
 	sig     "com.danceliquid.domohnoes"
 	name    "Domohnoes"
 	players 2..4

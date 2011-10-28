@@ -31,7 +31,7 @@ class Laink::Server
 					message = client.read_data
 					if message[:command]=='start_game' && message[:nick]
 						client.nick = message[:nick]
-						if gametype = Laink::GameType[ message[:gametype] ]
+						if gametype = Laink::GameEngine[ message[:gametype] ]
 							if game = create_game(gametype,client)
 								client.game = game
 								client.on_receive{ |command| game.message_from(client,command) }
@@ -75,6 +75,6 @@ end
 
 if __FILE__==$0
 	Dir['gametypes/*.rb'].each{ |rb| require_relative rb }
-	puts "Loaded games: #{Laink::GameType.known}"
+	puts "Loaded games: #{Laink::GameEngine.known}"
 	Laink::Server.new 
 end

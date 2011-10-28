@@ -18,6 +18,18 @@ class Laink::GameType
 		@by_signature.key?(signature)
 	end
 
+	##############################
+	### Tracking player statistics
+	##############################
+	def self.records(players)
+		(@stats ||= {})[players.map(&:nick).sort] ||= Hash[ players.map(&:nick).zip([0]*players.length) ]
+	end
+	def self.record_win(winner, players)
+		records(players).tap do |record|
+			record[winner.nick] += 1
+		end
+	end
+
 	##########################################
 	### DSL for classes to describe themselves
 	##########################################
@@ -102,8 +114,11 @@ class Laink::GameType
 	end
 
 	def finish_game( winner=nil )
-		@finished = true
-		@winner   = winner
+		@finished = true		
+		if @winner = winner
+			record = self.class.record_win(winner, players)
+			puts "#{self.class} records: #{Hash[ record.sort_by{ |nick,wins| [-wins,nick] } ]}"
+		end
 	end
 
 	def <<( player )

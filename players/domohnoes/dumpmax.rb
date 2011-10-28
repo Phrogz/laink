@@ -17,13 +17,9 @@ class DumpHigh < Laink::Client
 			{ action:'play', domino:hand.max_by{ |d| d.inject(:+) } }
 		else
 			if domino = hand.select{ |d| d.include?(flat.first) || d.include?(flat.last) }.max_by{ |d| d.inject(:+) }
-				if domino.include?(flat.first)
-					{action:'play', domino:domino, edge:'left' }
-				else
-					{action:'play', domino:domino, edge:'right'}
-				end
+				{ action:'play', domino:domino, edge:domino.include?(flat.first) ? 'left' : 'right' }
 			else
-				{action:'chapped'}
+				{ action:'chapped' }
 			end
 		end
 	end

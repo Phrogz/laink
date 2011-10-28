@@ -33,7 +33,7 @@ class Laink::JSONSocket
 	# Returns true if all data was sent, nil/false otherwise
 	def send_data( data )
 		json  = data.to_json
-		bytes = json.length
+		bytes = json.bytesize
 		puts "%s sending %i bytes: %s" % [@address,bytes,json] if $DEBUG
 		unless @socket.closed?
 			@socket.write [bytes].pack('n')
@@ -48,12 +48,12 @@ class Laink::JSONSocket
 		begin
 			return if @socket.closed?
 			bytes = @socket.read(2)
-			raise IOError.new("no byte header") unless bytes && bytes.length==2
+			raise IOError.new("no byte header") unless bytes && bytes.bytesize==2
 			bytes = bytes.unpack('n').first
 			return if @socket.closed?
 			json  = @socket.read(bytes)
 			puts "%s received %i bytes: %s" % [@address,bytes,json] if $DEBUG
-			raise IOError.new("not enough JSON data") unless json && json.length==bytes
+			raise IOError.new("not enough JSON data") unless json && json.bytesize==bytes
 			JSON.parse("[#{json}]",symbolize_names:true)[0]
 		rescue JSON::ParserError => e
 			warn "Failed to parse JSON response: #{json.inspect}; #{e}"

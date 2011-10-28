@@ -5,8 +5,8 @@ class Laink::Client
 	##########################################
 	### DSL for classes to describe themselves
 	##########################################
-	def self.gametype( signature=nil )
-		signature ? @gametype = signature : @gametype
+	def self.gametype( gametype=nil )
+		gametype ? @gametype = gametype : @gametype
 	end
 
 	def initialize

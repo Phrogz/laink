@@ -2,9 +2,9 @@
 require_relative '../gameengine'
 
 class Domohnoes < Laink::GameEngine
-	sig     "com.danceliquid.domohnoes"
-	name    "Domohnoes"
-	players 2..4
+	gametype "com.danceliquid.domohnoes"
+	name     "Domohnoes"
+	players  2..4
 
 	LEFT_EDGE  = /\A(?:left|start|front|first)\z/
 	RIGHT_EDGE = /\A(?:right|end|back|last)\z/

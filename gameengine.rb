@@ -37,9 +37,9 @@ class Laink::GameEngine
 	def self.name( name=nil )
 		name ? (@name ||= name) : @name
 	end
-	def self.sig( sig=nil )			
-		@sig ||= sig if sig
-		Laink::GameEngine[@sig] = self
+	def self.gametype( gametype=nil )
+		@gametype ||= gametype if gametype
+		Laink::GameEngine[@gametype] = self
 	end
 	def self.players( players=nil )
 		if players

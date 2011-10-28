@@ -71,6 +71,8 @@ class Laink::GameType
 					Thread.stop
 					# We'll get woken up by #message_from
 				end
+				# FIXME: we should validate that at least one 'helpful' message from the client exists
+				# FIXME: we should ensure that a message not handled by anyone gets flushed out of the queue at some point
 				:go while handle_message_from( player )
 			end
 			players.each(&:game_over)

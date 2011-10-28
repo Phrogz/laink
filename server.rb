@@ -16,7 +16,7 @@ end
 class Laink::Server
 	DEFAULT_PORT = 54147
 	def initialize( port=DEFAULT_PORT )
-		@idle_game_by_type = {}
+		@idle_game_by_engine = {}
 		@game_protector    = Mutex.new
 		listen_for_clients(port)
 	end
@@ -31,8 +31,8 @@ class Laink::Server
 					message = client.read_data
 					if message[:command]=='start_game' && message[:nick]
 						client.nick = message[:nick]
-						if gametype = Laink::GameEngine[ message[:gametype] ]
-							if game = create_game(gametype,client)
+						if engine = Laink::GameEngine[ message[:gametype] ]
+							if game = create_game(engine,client)
 								client.game = game
 								client.on_receive{ |command| game.message_from(client,command) }
 							else
@@ -51,12 +51,12 @@ class Laink::Server
 		end
 	end
 
-	def create_game(gametype,player)
+	def create_game(engine,player)
 		@game_protector.synchronize do
-			(@idle_game_by_type[gametype] ||= gametype.new).tap do |game|
+			(@idle_game_by_engine[engine] ||= engine.new).tap do |game|
 				game << player
 				game.start if game.enough_players?
-				@idle_game_by_type[gametype] = nil unless game.accepting_players?
+				@idle_game_by_engine[engine] = nil unless game.accepting_players?
 			end
 		end
 	end
@@ -74,7 +74,7 @@ class Laink::Server
 end
 
 if __FILE__==$0
-	Dir['gametypes/*.rb'].each{ |rb| require_relative rb }
+	Dir['gameengines/*.rb'].each{ |rb| require_relative rb }
 	puts "Loaded games: #{Laink::GameEngine.known}"
 	Laink::Server.new 
 end

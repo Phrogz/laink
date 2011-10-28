@@ -4,18 +4,18 @@ class Laink::GameEngine
 	##############################
 	### Tracking registered types
 	##############################
-	@by_signature = {}
-	def self.[](signature)
-		@by_signature[signature]
+	@engines_by_type = {}
+	def self.[](gametype)
+		@engines_by_type[gametype]
 	end
-	def self.[]=(signature, gametype)
-		@by_signature[signature] = gametype
+	def self.[]=(gametype, engine)
+		@engines_by_type[gametype] = engine
 	end
 	def self.known
-		@by_signature.values.sort
+		@engines_by_type.values.sort
 	end
-	def self.exists?(signature)
-		@by_signature.key?(signature)
+	def self.exists?(gametype)
+		@engines_by_type.key?(gametype)
 	end
 
 	##############################

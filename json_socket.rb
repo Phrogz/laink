@@ -15,11 +15,11 @@ class Laink::JSONSocket
 	end
 
 	def command( type, details={} )
-		send_data details.merge(command:type)
+		send_data( {command:type}.merge(details) )
 	end
 
 	def error( message, details={} )
-		send_data details.merge(error:message)
+		send_data( {error:message}.merge(details) )
 	end
 
 	def on_receive
@@ -34,7 +34,7 @@ class Laink::JSONSocket
 	def send_data( data )
 		json  = data.to_json
 		bytes = json.bytesize
-		puts "%s sending %i bytes: %s" % [@address,bytes,json] if $DEBUG
+		puts "SEND %3i bytes   to %s: %s" % [bytes,@address,json] if $DEBUG
 		unless @socket.closed?
 			@socket.write [bytes].pack('n')
 			unless @socket.closed?
@@ -52,7 +52,7 @@ class Laink::JSONSocket
 			bytes = bytes.unpack('n').first
 			return if @socket.closed?
 			json  = @socket.read(bytes)
-			puts "%s received %i bytes: %s" % [@address,bytes,json] if $DEBUG
+			puts "RECV %3i bytes from %s: %s" % [bytes,@address,json] if $DEBUG
 			raise IOError.new("not enough JSON data") unless json && json.bytesize==bytes
 			JSON.parse("[#{json}]",symbolize_names:true)[0]
 		rescue JSON::ParserError => e

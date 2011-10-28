@@ -20,14 +20,14 @@ class Domohnoes < Laink::GameType
 	def start
 		dominoes = 0.upto(@max).map{ |top| top.upto(@max).map{ |bottom| [top,bottom] } }.flatten(1).shuffle
 		@dominoes_by_player = Hash[ players.map{ |player| [ player, dominoes.pop(7) ] } ]
-		@scores_by_player   = Hash[ players.zip([0]*players.length) ]
 		super()
 	end
 
 	def finish_game
-		winner = players.find{ |player| hand(player).empty? } ||
-		         players.min_by{ |player| hand( player ).flatten.inject(:+) }
-		@scores_by_player[winner] = 100
+		unless winner = players.find{ |player| hand(player).empty? }
+			winners = players.group_by{ |player| hand(player).flatten.inject(:+) }.min_by(&:first).last
+			winner  = winners.first if winners.length==1
+		end
 		super(winner)
 	end
 
@@ -41,10 +41,6 @@ class Domohnoes < Laink::GameType
 
 	def state( player )
 		{ hand:hand(player), board:@board }
-	end
-
-	def scores
-		@scores_by_player
 	end
 
 	def handle_message_from(player)

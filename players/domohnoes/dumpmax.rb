@@ -13,7 +13,7 @@ class DumpHigh < Laink::Client
 		hand  = state[:hand ]
 		board = state[:board]
 		flat = board.flatten
-		if board.empty?
+		proposed = if board.empty?
 			{ action:'play', domino:hand.max_by{ |d| d.inject(:+) } }
 		else
 			if domino = hand.select{ |d| d.include?(flat.first) || d.include?(flat.last) }.max_by{ |d| d.inject(:+) }
@@ -23,5 +23,5 @@ class DumpHigh < Laink::Client
 			end
 		end
 	end
-	ARGV[1].to_i.times{ self.new(ARGV[0]).play_game } if __FILE__==$0
+	(ARGV[0] || 10).to_i.times{ self.new(ARGV[1]).play_game } if __FILE__==$0
 end

@@ -67,7 +67,7 @@ class Laink::GameEngine
 			turn = 0
 			last_player = nil
 			until game_over?
-				turn += 1
+				puts "### Turn ##{turn += 1} #########################" if $DEBUG
 				player = current_player
 				queue  = @player_messages[player]
 				player.your_turn

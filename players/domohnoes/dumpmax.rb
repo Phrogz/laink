@@ -23,8 +23,5 @@ class DumpHigh < Laink::Client
 			end
 		end
 	end
-end
-
-if __FILE__==$0
-	1000.times{ DumpHigh.new(ARGV[0]).play_game }
+	ARGV[1].to_i.times{ self.new(ARGV[0]).play_game } if __FILE__==$0
 end

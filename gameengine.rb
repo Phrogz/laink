@@ -1,5 +1,6 @@
 #encoding: UTF-8
 require_relative 'laink'
+require 'thread'
 class Laink::GameEngine
 	##############################
 	### Tracking registered types
@@ -36,9 +37,9 @@ class Laink::GameEngine
 	def self.name( name=nil )
 		name ? (@name ||= name) : @name
 	end
-	def self.sig( sig=nil )			
-		@sig ||= sig if sig
-		Laink::GameEngine[@sig] = self
+	def self.gametype( gametype=nil )
+		@gametype ||= gametype if gametype
+		Laink::GameEngine[@gametype] = self
 	end
 	def self.players( players=nil )
 		if players
@@ -56,7 +57,6 @@ class Laink::GameEngine
 		@started  = false
 		@finished = false
 		@players  = []
-		@message_lock = Mutex.new
 		@player_messages = {}
 		@processor = nil
 	end
@@ -64,16 +64,19 @@ class Laink::GameEngine
 	def start
 		@started = true
 		@processor = Thread.new do
-			until finished?
+			turn = 0
+			last_player = nil
+			until game_over?
+				puts "### Turn ##{turn += 1} #########################" if $DEBUG
 				player = current_player
+				queue  = @player_messages[player]
 				player.your_turn
-				while @message_lock.synchronize{ @player_messages[player].empty? } # TODO: timeout
-					Thread.stop
-					# We'll get woken up by #message_from
+				until current_player != player || game_over?
+					next_message = queue.shift
+					unless handle_message( next_message, player )
+						player.error "UnhandledMessage", message:next_message
+					end
 				end
-				# FIXME: we should validate that at least one 'helpful' message from the client exists
-				# FIXME: we should ensure that a message not handled by anyone gets flushed out of the queue at some point
-				:go while handle_message_from( player )
 			end
 			players.each(&:game_over)
 			@processor = nil
@@ -82,25 +85,19 @@ class Laink::GameEngine
 
 	# Should be overridden by subclasses with super(); this only handles common commands
 	# Returns nil for a message not ready to be handled
-	def handle_message_from( player )
-		# TODO: What other commands might we support?
-		if next_message(player){ |m| m[:command]=='quit' }
-			remove_player(player)
+	def handle_message( message, player )
+		case message[:command]
+			when 'state'       then player.send_data state:state(player)
+			when 'players'     then player.send_data players.map(&:nick)
+			when 'valid_move?' then player.send_data valid_move?( message, player )
+			when 'quit'        then remove_player(player)
+			else return
 		end
-	end
-
-	def next_message( player )
-		@message_lock.synchronize do
-			queue = @player_messages[player] ||= []
-			if message = queue.first
-				block_given? ? yield(message) && queue.shift : queue.shift
-			end
-		end
+		true
 	end
 
 	def message_from( player, message )
-		@message_lock.synchronize{ (@player_messages[player] ||= []) << message }
-		@processor.run if @processor
+		@player_messages[player] << message
 	end
 
 	def started?
@@ -108,10 +105,10 @@ class Laink::GameEngine
 	end
 
 	def active?
-		started? && !finished?
+		started? && !game_over?
 	end
 
-	def finished?
+	def game_over?
 		@finished
 	end
 
@@ -119,13 +116,13 @@ class Laink::GameEngine
 		@finished = true		
 		if @winner = winner
 			record = self.class.record_win(winner, players)
-			puts "#{self.class} records: #{Hash[ record.sort_by{ |nick,wins| [-wins,nick] } ]}"
+			puts "#{self.class} standings: #{Hash[ record.sort_by{ |nick,wins| [-wins,nick] } ]}"
 		end
 	end
 
 	def <<( player )
 		players << player
-		@player_messages[player] = []
+		@player_messages[player] = Queue.new
 		raise "Too many players" if too_many_players?
 	end
 
@@ -133,6 +130,7 @@ class Laink::GameEngine
 		players.delete( player )
 		@player_messages[player] = nil
 		raise "Game cannot continue; not enough players" unless enough_players?
+		true
 	end
 
 	def enough_players?( player_count=players.length )

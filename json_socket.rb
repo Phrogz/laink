@@ -4,13 +4,13 @@ require 'socket'
 require_relative 'laink'
 
 class Laink::JSONSocket
-	attr_reader :socket, :address
+	attr_reader :socket, :address, :name
 	def initialize( socket )
 		@socket  = socket
-		@address = if @socket.respond_to? :remote_address
+		@name = if @socket.respond_to? :remote_address
 			"%s:%i" % @socket.remote_address.ip_unpack
 		else
-			"(No Address on 1.9.1-)"
+			"???" # No Address on 1.9.1-
 		end
 	end
 
@@ -34,7 +34,7 @@ class Laink::JSONSocket
 	def send_data( data )
 		json  = data.to_json
 		bytes = json.bytesize
-		puts "SEND %3i bytes   to %s: %s" % [bytes,@address,json] if $DEBUG
+		puts "SEND %3i bytes   to %s: %s" % [bytes,name,json] if $DEBUG
 		unless @socket.closed?
 			@socket.write [bytes].pack('n')
 			unless @socket.closed?
@@ -52,7 +52,7 @@ class Laink::JSONSocket
 			bytes = bytes.unpack('n').first
 			return if @socket.closed?
 			json  = @socket.read(bytes)
-			puts "RECV %3i bytes from %s: %s" % [bytes,@address,json] if $DEBUG
+			puts "RECV %3i bytes from %s: %s" % [bytes,name,json] if $DEBUG
 			raise IOError.new("not enough JSON data") unless json && json.bytesize==bytes
 			JSON.parse("[#{json}]",symbolize_names:true)[0]
 		rescue JSON::ParserError => e

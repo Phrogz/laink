@@ -5,8 +5,8 @@ class Laink::Client
 	##########################################
 	### DSL for classes to describe themselves
 	##########################################
-	def self.gametype( signature=nil )
-		signature ? @gametype = signature : @gametype
+	def self.gametype( gametype=nil )
+		gametype ? @gametype = gametype : @gametype
 	end
 
 	def initialize
@@ -51,6 +51,11 @@ class Laink::Client
 	def disconnect
 		@server.close
 		@server = nil
+	end
+
+	def valid_move?(proposed)
+		@server.command 'valid_move?', proposed
+		@server.read_data
 	end
 
 	# TODO: requires a Thread for asynchronous sending that I don't care to do now.

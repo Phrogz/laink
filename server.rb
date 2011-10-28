@@ -5,6 +5,7 @@ require_relative 'json_socket'
 
 class Laink::JSONSocket::Player < Laink::JSONSocket
 	attr_accessor :nick, :game
+	alias_method :name, :nick
 	def your_turn
 		command 'move', state:game.state(self)
 	end

@@ -27,7 +27,6 @@ class Laink::Client
 				when 'move'
 					@server.command( 'move', move(message[:state]) )
 				when 'gameover'
-					p [ message[:winner], name ]
 					puts "Game was won by #{message[:winner]} (#{message[:winner]==name ? "That's me!" : "not me"})"
 					throw( :no_more_messages, message[:winner]==name )
 			end

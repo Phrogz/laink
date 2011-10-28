@@ -1,13 +1,13 @@
 #!/usr/bin/env ruby
 #encoding: UTF-8
 
-require_relative 'client'
-class Dominaster < Laink::Client
+require_relative '../../client'
+class RandomMatch < Laink::Client
 	gametype 'com.danceliquid.domohnoes'
 	attr_reader :name
-	def initialize
-		super
-		@name = "#{self.class.name}_#{rand(999999).to_s(36)}"
+	def initialize( name=nil )
+		super()
+		@name = name || self.class.name
 	end
 	def move( state )
 		hand  = state[:hand].shuffle
@@ -26,5 +26,5 @@ class Dominaster < Laink::Client
 end
 
 if __FILE__==$0
-	30.times{ Dominaster.new.play_game }
+	1000.times{ RandomMatch.new(ARGV[0]).play_game }
 end

@@ -39,19 +39,24 @@ class Domohnoes < Laink::GameEngine
 		{ hand:hand(player), board:@board }
 	end
 
-	def handle_message_from(player)
-		if message = next_message(player){ |m| m[:command]=='move' && player==current_player }
-			if valid_move?( player, message )
-				move_from( player, message )
+	def handle_message( message, player )
+		case message[:command]
+			when 'move'
+				if player==current_player
+					if valid_move?( message, player )
+						process_move( message, player )
+					else
+						player.error 'InvalidMove', move:message
+					end
+				end
+				true
 			else
-				player.error 'InvalidMove', move:message
-			end
-		else
-			super
+				super
 		end
 	end
 
-	def valid_move?( player, move )
+	def valid_move?( move, player )
+		puts "Validating #{move.inspect} for #{player.nick} vs. #{current_player.nick} @ #{@board.inspect}" if $DEBUG
 		case move[:action]
 			when 'chapped'
 				return false if @board.empty?
@@ -71,9 +76,9 @@ class Domohnoes < Laink::GameEngine
 		end
 	end
 
-	def move_from( player, move )
+	def process_move( move, player )
 		raise "not your move" unless player == current_player
-		raise "invalid move"  unless valid_move?( player, move )
+		raise "invalid move"  unless valid_move?( move, player )
 		case move[:action]
 			when 'chapped'
 				finish_game if (@sequential_chaps += 1) == players.length

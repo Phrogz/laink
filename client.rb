@@ -53,6 +53,11 @@ class Laink::Client
 		@server = nil
 	end
 
+	def valid_move?(proposed)
+		@server.command 'valid_move?', proposed
+		@server.read_data
+	end
+
 	# TODO: requires a Thread for asynchronous sending that I don't care to do now.
 	# def quit
 	# 	if connected?

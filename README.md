@@ -11,4 +11,7 @@ Laink also provides a reference implementation for generic player AIs and game e
   * _TBD: Should the server be a broker for messages, or just connect clients directly to the game engine after it's booted up? The former is more overhead, but allows the server to track all interactions and generate stats._
    
 1. Allow clients to request a game with a number of players less than the minimum
+1. Client's spewing unexpected nonsense get an asynchronous reader thread/message queue to let them know about the nonsense.
+1. When a client's connection dies, ensure it's removed from the game and closed down as elegantly as the situation allows.
 1. Asynchronous queue for 'high priority' player requests before their turn _(e.g. "What's the score?", "I Quit!", "Tell Harold he's going down!" )_
+1. Research replacing all threads with actors

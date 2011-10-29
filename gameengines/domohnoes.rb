@@ -56,7 +56,6 @@ class Domohnoes < Laink::GameEngine
 	end
 
 	def valid_move?( move, player )
-		puts "Validating #{move.inspect} for #{player.nick} vs. #{current_player.nick} @ #{@board.inspect}" if $DEBUG
 		case move[:action]
 			when 'chapped'
 				return false if @board.empty?

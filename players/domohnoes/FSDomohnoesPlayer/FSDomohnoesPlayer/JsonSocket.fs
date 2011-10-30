@@ -9,9 +9,6 @@ open Json
 
 let utf8 = Encoding.UTF8
 
-let endianSwap (b:byte[]) =
-  Array.Reverse b
-
 type JsonSocket(c:TcpClient) =
   member self.SendData(data:string) =
     let b = utf8.GetBytes(data)

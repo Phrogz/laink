@@ -14,6 +14,7 @@ type JsonSocket(c:TcpClient) =
     let b = utf8.GetBytes(data)
     let l = b.Length
     let stream = c.GetStream()
+    // TODO: There is an endianness bug here
     let hb = BitConverter.GetBytes( int16 l )
     let temp = hb.[0]
     hb.[0] <- hb.[1]; hb.[1] <- temp
@@ -24,6 +25,7 @@ type JsonSocket(c:TcpClient) =
     let stream = c.GetStream()
     let header = Array.create 2 ((byte)0)
     stream.Read( header, 0, 2 ) |> ignore
+    // TODO: There is an endianness bug here
     let l = BitConverter.ToInt16( header, 0 )
     let size = ((int)l)
     let response = Array.create size ((byte)0)

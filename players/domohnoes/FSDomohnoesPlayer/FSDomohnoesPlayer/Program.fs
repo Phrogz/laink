@@ -1,4 +1,5 @@
-﻿open System.Net.Sockets
+﻿open System
+open System.Net.Sockets
 open System.Collections
 
 open Json
@@ -55,12 +56,26 @@ let command (s:JsonSocket) (c:string) (h:Hashtable) =
   h.Add("command", c)
   s.SendData(toJson h)
 
+// Load .dll
+let getBrain name =
+  let p = IO.Path.GetFullPath( sprintf "%O.dll" name )
+  let a = Reflection.Assembly.LoadFile( p )
+  let ts = a.GetTypes()
+  let t = Seq.find (fun (t:Type) -> t.Name=name ) ts
+  Activator.CreateInstance( t )
+
+let args = Environment.GetCommandLineArgs()
+let (player:Doms.IPlayer) = if args.Length > 1 then
+                              downcast getBrain(args.[1])
+                            else
+                              new Buffoon.Buffoon() :> Doms.IPlayer
+
 let socket = new JsonSocket( new TcpClient("localhost", 54147) )
-let r = new System.Random()
+let r = new Random()
 
 let startGameData = new Hashtable()
 startGameData.Add("gametype", "com.danceliquid.domohnoes")
-startGameData.Add("nick", "F# Doms Player")
+startGameData.Add("nick", player.GetName())
 command socket "start_game" startGameData
 
 let mutable weDone = false
@@ -78,12 +93,9 @@ while weDone=false do
     if options.Count=0 then
       moveData.Add("action", "chapped")
     else
-      let move = options.[ r.Next(options.Count) ] // TODO: Call into .dll
+      let move = options.[ player.GetMove( options ) ]
       moveData.Add("action", "play")
-      let a = new ArrayList()
-      a.Add( move.played.l ) |> ignore
-      a.Add( move.played.r ) |> ignore
-      moveData.Add("domino", a)
+      moveData.Add("domino", new ArrayList( move.played.GetList() ))
       moveData.Add("edge", if move.side = side.Front then "front" else "back")
     command socket "move" moveData
   elif h.["command"] :?> string = "gameover" then

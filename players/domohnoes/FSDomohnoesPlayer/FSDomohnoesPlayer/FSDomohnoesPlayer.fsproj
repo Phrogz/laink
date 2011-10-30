@@ -47,6 +47,7 @@
   <ItemGroup>
     <Compile Include="Json.fs" />
     <Compile Include="JsonSocket.fs" />
+    <Compile Include="Buffoon.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

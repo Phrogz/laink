@@ -9,7 +9,9 @@ open Json
 
 let utf8 = Encoding.UTF8
 
-type JsonSocket(c:TcpClient) =
+type JsonSocket(host:string, port:int) =
+  let mutable c = new TcpClient(host, port)
+
   member self.SendData(data:string) =
     let b = utf8.GetBytes(data)
     let l = b.Length
@@ -29,3 +31,7 @@ type JsonSocket(c:TcpClient) =
     let response = Array.create size ((byte)0)
     let l = stream.Read( response, 0, size )
     String(utf8.GetChars( response, 0, size )).Trim(Array.create 1 ((char)0))
+
+  member self.Reconnect() =
+    c.Close()
+    c <- new TcpClient(host, port)

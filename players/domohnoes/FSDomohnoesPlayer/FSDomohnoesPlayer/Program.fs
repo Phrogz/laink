@@ -1,5 +1,4 @@
 ﻿open System
-open System.Net.Sockets
 open System.Collections
 
 open Json
@@ -53,7 +52,7 @@ let makeBoard (a:ArrayList) =
   b
 
 let command (s:JsonSocket) (c:string) (h:Hashtable) =
-  h.Add("command", c)
+  h.["command"] <- c
   s.SendData(toJson h)
 
 // Load .dll
@@ -64,20 +63,22 @@ let getBrain name =
   let t = Seq.find (fun (t:Type) -> t.Name=name ) ts
   Activator.CreateInstance( t )
 
+// Handle command line arguments.
 let args = Environment.GetCommandLineArgs()
-let (player:Doms.IPlayer) = if args.Length > 1 then
-                              downcast getBrain(args.[1])
-                            else
-                              new Buffoon.Buffoon() :> Doms.IPlayer
+let (gameCount, player:Doms.IPlayer) = match args.Length with
+                                         | 2 -> (Int32.Parse args.[1], new Buffoon.Buffoon() :> Doms.IPlayer)
+                                         | 3 -> (Int32.Parse args.[1], downcast (getBrain args.[2]))
+                                         | _ -> (10, new Buffoon.Buffoon() :> Doms.IPlayer)
 
-let socket = new JsonSocket( new TcpClient("localhost", 54147) )
+let socket = new JsonSocket( "localhost", 54147 )
 let r = new Random()
 
 let startGameData = new Hashtable()
-startGameData.Add("gametype", "com.danceliquid.domohnoes")
-startGameData.Add("nick", player.GetName())
+startGameData.["gametype"] <- "com.danceliquid.domohnoes"
+startGameData.["nick"]     <- player.GetName()
 command socket "start_game" startGameData
 
+let mutable gamesPlayed = 0
 let mutable weDone = false
 while weDone=false do
   let s = socket.ReadData()
@@ -91,16 +92,21 @@ while weDone=false do
 
     let options = getTurnOptions h b
     if options.Count=0 then
-      moveData.Add("action", "chapped")
+      moveData.["action"] <- "chapped"
     else
       let move = options.[ player.GetMove( options ) ]
-      moveData.Add("action", "play")
-      moveData.Add("domino", new ArrayList( move.played.GetList() ))
-      moveData.Add("edge", if move.side = side.Front then "front" else "back")
+      moveData.["action"] <- "play"
+      moveData.["domino"] <- new ArrayList( move.played.GetList() )
+      moveData.["edge"] <- if move.side = side.Front then "front" else "back"
     command socket "move" moveData
   elif h.["command"] :?> string = "gameover" then
     printfn "Game Over: %O" s
-    weDone <- true
+    gamesPlayed <- gamesPlayed+1
+    if gamesPlayed >= gameCount then
+      weDone <- true
+    else
+      socket.Reconnect()
+      command socket "start_game" startGameData
   else
     printfn "Weird message: %O" s
 

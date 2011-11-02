@@ -54,31 +54,43 @@ class Laink::GameEngine
 	##########################################
 	attr_reader :players, :winner
 	def initialize
-		@started  = false
-		@finished = false
 		@players  = []
-		@player_messages = {}
 		@processor = nil
+		@player_messages = {}
+		reset_game
 	end
 
-	def start
+	def reset_game
+		@started  = false
+		@finished = false
+		@player_messages.map(&:last).each(&:clear)
+	end
+
+	def start(games=1)
 		@started = true
+		played = 0
 		@processor = Thread.new do
-			turn = 0
-			last_player = nil
-			until game_over?
-				puts "### Turn ##{turn += 1} #########################" if $DEBUG
-				player = current_player
-				queue  = @player_messages[player]
-				player.your_turn
-				until current_player != player || game_over?
-					next_message = queue.shift
-					unless handle_message( next_message, player )
-						player.error "UnhandledMessage", message:next_message
+			until played>=games
+				reset_game
+				players.each(&:new_game)
+				last_player = nil
+				turn = 0
+				until game_over?
+					puts "### Turn ##{turn += 1} #########################" if $DEBUG
+					player = current_player
+					queue  = @player_messages[player]
+					player.your_turn
+					until current_player != player || game_over?
+						next_message = queue.shift
+						unless handle_message( next_message, player )
+							player.error "UnhandledMessage", message:next_message
+						end
 					end
 				end
+				players.each(&:game_over)
+				played += 1
 			end
-			players.each(&:game_over)
+			players.each(&:goodbye)
 			@processor = nil
 		end
 	end
@@ -142,7 +154,7 @@ class Laink::GameEngine
 	end
 
 	def too_many_players?( player_count=players.length )
-		player_count > self.class.players.first
+		player_count > self.class.players.last
 	end
 
 	def accepting_players?

@@ -10,17 +10,17 @@ class Domohnoes < Laink::GameEngine
 	RIGHT_EDGE = /\A(?:right|end|back|last)\z/
 
 	def initialize(max=6)
-		super()
 		@max = max
-		@board = []
 		@player_index = 0
-		@sequential_chaps = 0
+		super()
 	end
 
-	def start
+	def reset_game
+		super()
+		@board = []
+		@sequential_chaps = 0
 		dominoes = 0.upto(@max).map{ |top| top.upto(@max).map{ |bottom| [top,bottom] } }.flatten(1).shuffle
 		@dominoes_by_player = Hash[ players.map{ |player| [ player, dominoes.pop(7) ] } ]
-		super()
 	end
 
 	def finish_game
@@ -28,6 +28,10 @@ class Domohnoes < Laink::GameEngine
 			winners = players.group_by{ |player| hand(player).flatten.inject(:+) }.min_by(&:first).last
 			winner  = winners.first if winners.length==1
 		end
+		
+		# Set the first player for the next game (if there will be one)
+		@player_index = players.index(winner) if winner
+
 		super(winner)
 	end
 
@@ -80,7 +84,7 @@ class Domohnoes < Laink::GameEngine
 		raise "invalid move"  unless valid_move?( move, player )
 		case move[:action]
 			when 'chapped'
-				finish_game if (@sequential_chaps += 1) == players.length
+				return finish_game if (@sequential_chaps += 1) == players.length
 
 			when 'play'
 				@sequential_chaps = 0
@@ -93,7 +97,7 @@ class Domohnoes < Laink::GameEngine
 					else # Handles no edge initial move as well as explicit right edge
 						@board.push(    flat.last==domino.first ? domino : domino.reverse )
 				end
-				finish_game if hand( player ).empty?
+				return finish_game if hand( player ).empty?
 
 		end
 		@player_index = ( @player_index + 1 ) % players.length

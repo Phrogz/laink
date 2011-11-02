@@ -6,7 +6,6 @@ Laink also provides a reference implementation for generic player AIs and game e
 
 ## TODO
    
-1. Allow clients to request a game with a number of players less than the minimum
 1. Client's spewing unexpected nonsense get an asynchronous reader thread/message queue to let them know about the nonsense.
 1. When a client's connection dies, ensure it's removed from the game and closed down as elegantly as the situation allows.
 1. Separate game engines out of the server process, instead communicating over sockets.

@@ -12,13 +12,19 @@ class Laink::JSONSocket::Player < Laink::JSONSocket
 	def game_over
 		command 'gameover', winner:(game.winner && game.winner.nick)
 	end
+	def goodbye
+		command 'goodbye', scores:game.class.records(game.players)
+	end
+	def new_game
+		command 'new_game'
+	end
 end
 
 class Laink::Server
 	DEFAULT_PORT = 54147
 	def initialize( port=DEFAULT_PORT )
-		@idle_game_by_engine = {}
-		@game_protector    = Mutex.new
+		@idle_game_by_engine_and_players = {}
+		@game_protector = Mutex.new
 		listen_for_clients(port)
 	end
 	
@@ -33,7 +39,7 @@ class Laink::Server
 					if message[:command]=='start_game' && message[:nick]
 						client.nick = message[:nick]
 						if engine = Laink::GameEngine[ message[:gametype] ]
-							if game = create_game(engine,client)
+							if game = create_game(engine,client,message[:min_players],message[:rounds])
 								client.game = game
 								client.on_receive{ |command| game.message_from(client,command) }
 							else
@@ -52,12 +58,12 @@ class Laink::Server
 		end
 	end
 
-	def create_game(engine,player)
+	def create_game(engine,player,players=2,rounds=1)
 		@game_protector.synchronize do
-			(@idle_game_by_engine[engine] ||= engine.new).tap do |game|
+			(@idle_game_by_engine_and_players[[engine,players]] ||= engine.new).tap do |game|
 				game << player
-				game.start if game.enough_players?
-				@idle_game_by_engine[engine] = nil unless game.accepting_players?
+				game.start(rounds) if game.players.length >= players
+				@idle_game_by_engine_and_players[[engine,players]] = nil unless game.accepting_players?
 			end
 		end
 	end

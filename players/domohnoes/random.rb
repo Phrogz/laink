@@ -23,7 +23,7 @@ class RandomMatch < Laink::Client
 			{action:'chapped'}
 		end
 	end
-	(ARGV[0] || 10).to_i.times{ self.new(ARGV[1]).play_game } if __FILE__==$0
+	self_run if __FILE__==$0
 end
 
 

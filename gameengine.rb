@@ -40,6 +40,7 @@ class Laink::GameEngine
 	def self.gametype( gametype=nil )
 		@gametype ||= gametype if gametype
 		Laink::GameEngine[@gametype] = self
+		@gametype
 	end
 	def self.players( players=nil )
 		if players
@@ -68,9 +69,10 @@ class Laink::GameEngine
 
 	def start(games=1)
 		@started = true
-		played = 0
 		@processor = Thread.new do
-			until played>=games
+			print "Playing #{games} games of #{self.class.gametype}: "
+			$stdout.flush
+			games.times do
 				reset_game
 				players.each(&:new_game)
 				last_player = nil
@@ -88,10 +90,24 @@ class Laink::GameEngine
 					end
 				end
 				players.each(&:game_over)
-				played += 1
+				print "."
+				$stdout.flush
 			end
 			players.each(&:goodbye)
+			write_standings
 			@processor = nil
+		end
+	end
+
+	def write_standings
+		require 'time' # for iso8601
+		Dir.mkdir('standings') unless File.exists?('standings')
+		File.open(File.join('standings',self.class.gametype),'a') do |f|
+			standing = self.class.records(players)
+			message = "#{Time.now.gmtime.iso8601} #{Hash[ standing.sort_by{ |nick,wins| [-wins,nick] } ]}"
+			puts message
+			$stdout.flush
+			f.puts message
 		end
 	end
 
@@ -126,10 +142,7 @@ class Laink::GameEngine
 
 	def finish_game( winner=nil )
 		@finished = true		
-		if @winner = winner
-			record = self.class.record_win(winner, players)
-			puts "#{self.class} standings: #{Hash[ record.sort_by{ |nick,wins| [-wins,nick] } ]}"
-		end
+		self.class.record_win(winner, players) if @winner = winner
 	end
 
 	def <<( player )

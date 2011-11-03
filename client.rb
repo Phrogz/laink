@@ -32,7 +32,7 @@ class Laink::Client
 					puts "Game on!" if $DEBUG
 					start_game
 				when 'gameover'
-					puts "Game was won by #{message[:winner]} (#{message[:winner]==name ? "That's me!" : "not me"})"
+					puts "Game was won by #{message[:winner]} (#{message[:winner]==name ? "That's me!" : "not me"})" if $DEBUG
 				when 'goodbye'
 					puts "Final score: #{message[:scores].inspect}"
 					throw( :no_more_messages, message[:winner]==name )

@@ -31,7 +31,3 @@ type JsonSocket(host:string, port:int) =
     let response = Array.create size ((byte)0)
     let l = stream.Read( response, 0, size )
     String(utf8.GetChars( response, 0, size )).Trim(Array.create 1 ((char)0))
-
-  member self.Reconnect() =
-    c.Close()
-    c <- new TcpClient(host, port)

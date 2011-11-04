@@ -74,8 +74,10 @@ let socket = new JsonSocket( "localhost", 54147 )
 let r = new Random()
 
 let startGameData = new Hashtable()
-startGameData.["gametype"] <- "com.danceliquid.domohnoes"
-startGameData.["nick"]     <- player.GetName()
+startGameData.["gametype"]    <- "com.danceliquid.domohnoes"
+startGameData.["nick"]        <- player.GetName()
+startGameData.["min_players"] <- 2
+startGameData.["rounds"]      <- gameCount
 command socket "start_game" startGameData
 
 let mutable gamesPlayed = 0
@@ -104,9 +106,6 @@ while weDone=false do
     gamesPlayed <- gamesPlayed+1
     if gamesPlayed >= gameCount then
       weDone <- true
-    else
-      socket.Reconnect()
-      command socket "start_game" startGameData
   else
     printfn "Weird message: %O" s
 
